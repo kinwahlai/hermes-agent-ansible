@@ -48,8 +48,8 @@
     PATH: "{{ hermes_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
     DEBIAN_FRONTEND: noninteractive
     NEEDRESTART_MODE: "a"
-    # Force Playwright to skip system deps install (we handle them in prereqs.yml)
-    PLAYWRIGHT_SKIP_BROWSER_GC: "1"
+    # Skip Playwright browser download inside install.sh — we handle it ourselves below
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
   timeout: 600
   when: not hermes_binary.stat.exists
 
@@ -62,6 +62,28 @@
   ansible.builtin.assert:
     that: hermes_binary_post.stat.exists
     fail_msg: "hermes binary not found at {{ hermes_bin }} — install may have failed"
+
+- name: Find existing Playwright Chromium directory
+  ansible.builtin.find:
+    paths: "{{ hermes_home }}/.cache/ms-playwright"
+    patterns: "chromium-*"
+    file_type: directory
+  register: playwright_chromium
+  become: true
+  become_user: "{{ hermes_user }}"
+
+- name: Install Playwright Chromium browser (without --with-deps)
+  ansible.builtin.command:
+    cmd: npx playwright install chromium
+  args:
+    chdir: "{{ hermes_install_dir }}"
+  become: true
+  become_user: "{{ hermes_user }}"
+  environment:
+    HOME: "{{ hermes_home }}"
+    PATH: "{{ hermes_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  timeout: 300
+  when: playwright_chromium.matched == 0
 
 - name: Get hermes version
   ansible.builtin.command: "{{ hermes_bin }} --version"
