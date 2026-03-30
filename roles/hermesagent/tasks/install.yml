@@ -32,9 +32,12 @@
   when: not hermes_binary.stat.exists
 
 - name: Run hermes-agent installer as hermesagent user
-  ansible.builtin.command:
+  ansible.builtin.shell:
     # --skip-setup: skip the interactive API key wizard (run 'hermes setup' manually after deploy)
-    cmd: bash /tmp/hermes-install.sh --skip-setup
+    # Redirect stdin from /dev/null and unset /dev/tty detection to prevent any interactive prompts
+    # from hanging (the install.sh reads /dev/tty for sudo prompts in install_system_packages,
+    # install_deps build-tools, and Playwright --with-deps).
+    cmd: bash /tmp/hermes-install.sh --skip-setup < /dev/null
     creates: "{{ hermes_bin }}"
   become: true
   become_user: "{{ hermes_user }}"
@@ -45,6 +48,9 @@
     PATH: "{{ hermes_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
     DEBIAN_FRONTEND: noninteractive
     NEEDRESTART_MODE: "a"
+    # Force Playwright to skip system deps install (we handle them in prereqs.yml)
+    PLAYWRIGHT_SKIP_BROWSER_GC: "1"
+  timeout: 600
   when: not hermes_binary.stat.exists
 
 - name: Verify hermes binary is present after install

@@ -22,3 +22,23 @@
       - acl
     state: present
     update_cache: false
+
+# Playwright Chromium system deps — install as root so the installer
+# (running as hermesagent user without sudo) doesn't hang on `--with-deps`.
+- name: Ensure Playwright Chromium system dependencies are present
+  ansible.builtin.apt:
+    name:
+      - libnss3
+      - libatk1.0-0t64
+      - libatk-bridge2.0-0t64
+      - libcups2t64
+      - libdrm2
+      - libxkbcommon0
+      - libatspi2.0-0t64
+      - libxdamage1
+      - libgbm1
+      - libpango-1.0-0
+      - libcairo2
+      - libasound2t64
+    state: present
+    update_cache: false
