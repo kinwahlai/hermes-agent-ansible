@@ -1,0 +1,6 @@
+---
+- name: Restart hermesagent
+  ansible.builtin.systemd:
+    name: hermesagent
+    state: restarted
+    daemon_reload: true

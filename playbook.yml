@@ -1,0 +1,22 @@
+---
+# Hermes AI Agent — Installer
+#
+# Installs hermes-agent on Debian/Ubuntu Linux (aarch64/x86_64):
+#   - hermesagent system user with scoped sudo
+#   - hermes-agent (Python app via uv + install.sh)
+#   - Systemd service (auto-start)
+#   - Tailscale serve for remote HTTPS access (port 8444)
+#
+# Prereqs: Node.js 22.x, git, curl, Tailscale already present (openclaw-ansible)
+#
+# Usage:
+#   ansible-playbook -i inventory playbook.yml --ask-become-pass
+#
+# CI/test mode (skip service + tailscale):
+#   ansible-playbook -i inventory playbook.yml --ask-become-pass -e ci_test=true
+
+- name: Install Hermes Agent
+  hosts: all
+  become: true
+  roles:
+    - hermesagent

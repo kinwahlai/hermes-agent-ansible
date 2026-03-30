@@ -1,0 +1,17 @@
+---
+- name: Include prerequisites tasks
+  ansible.builtin.include_tasks: prereqs.yml
+
+- name: Include user creation tasks
+  ansible.builtin.include_tasks: user.yml
+
+- name: Include hermes-agent installation tasks
+  ansible.builtin.include_tasks: install.yml
+
+- name: Include systemd service tasks
+  ansible.builtin.include_tasks: service.yml
+  when: not ci_test
+
+- name: Include tailscale serve tasks
+  ansible.builtin.include_tasks: tailscale.yml
+  when: not ci_test and hermes_tailscale_enable

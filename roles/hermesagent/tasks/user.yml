@@ -1,0 +1,75 @@
+---
+- name: Create hermesagent system user
+  ansible.builtin.user:
+    name: "{{ hermes_user }}"
+    comment: "Hermes Agent Service User"
+    system: true
+    shell: /bin/bash
+    create_home: true
+    home: "{{ hermes_home }}"
+    state: present
+
+- name: Ensure hermesagent home directory has correct ownership
+  ansible.builtin.file:
+    path: "{{ hermes_home }}"
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    state: directory
+    mode: '0755'
+
+- name: Configure PATH in .bashrc for hermesagent user
+  ansible.builtin.blockinfile:
+    path: "{{ hermes_home }}/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - hermesagent config"
+    block: |
+      export PATH="{{ hermes_home }}/.local/bin:/usr/local/bin:$PATH"
+    create: true
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: '0644'
+
+- name: Create .bash_profile to source .bashrc for login shells
+  ansible.builtin.copy:
+    dest: "{{ hermes_home }}/.bash_profile"
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: '0644'
+    content: |
+      # .bash_profile - Executed for login shells
+      if [ -f ~/.bashrc ]; then
+          . ~/.bashrc
+      fi
+
+- name: Add hermesagent user to sudoers with scoped NOPASSWD
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ hermes_user }}"
+    mode: '0440'
+    owner: root
+    group: root
+    content: |
+      # Hermesagent sudo permissions (scoped for security)
+      {{ hermes_user }} ALL=(ALL) NOPASSWD: /usr/bin/systemctl start hermesagent
+      {{ hermes_user }} ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop hermesagent
+      {{ hermes_user }} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart hermesagent
+      {{ hermes_user }} ALL=(ALL) NOPASSWD: /usr/bin/systemctl status hermesagent
+      {{ hermes_user }} ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable hermesagent
+      {{ hermes_user }} ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable hermesagent
+      {{ hermes_user }} ALL=(ALL) NOPASSWD: /usr/bin/systemctl daemon-reload
+      {{ hermes_user }} ALL=(ALL) NOPASSWD: /usr/bin/journalctl -u hermesagent *
+    validate: /usr/sbin/visudo -cf %s
+
+- name: Create .ssh directory for hermesagent user
+  ansible.builtin.file:
+    path: "{{ hermes_home }}/.ssh"
+    state: directory
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: '0700'
+
+- name: Add SSH authorized keys for hermesagent user
+  ansible.posix.authorized_key:
+    user: "{{ hermes_user }}"
+    state: present
+    key: "{{ item }}"
+  loop: "{{ hermes_ssh_keys }}"
+  when: hermes_ssh_keys | length > 0

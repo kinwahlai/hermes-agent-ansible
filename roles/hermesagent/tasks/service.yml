@@ -1,0 +1,28 @@
+---
+- name: Deploy hermesagent systemd service
+  ansible.builtin.template:
+    src: hermesagent.service.j2
+    dest: /etc/systemd/system/hermesagent.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart hermesagent
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start hermesagent service
+  ansible.builtin.systemd:
+    name: hermesagent
+    state: started
+    enabled: true
+
+- name: Verify hermesagent service is running
+  ansible.builtin.systemd:
+    name: hermesagent
+  register: hermesagent_service_status
+
+- name: Display service status
+  ansible.builtin.debug:
+    msg: "hermesagent service state: {{ hermesagent_service_status.status.ActiveState }}"

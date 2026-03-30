@@ -1,0 +1,32 @@
+---
+# Expose hermesagent on a dedicated tailscale HTTPS port so it doesn't
+# conflict with openclaw (root) or paperclip (8443).
+#
+# Result: https://<tailnet-hostname>:{{ hermes_tailscale_https_port }}/
+#   → http://127.0.0.1:{{ hermes_port }}
+#
+# Tailscale is already installed (by openclaw-ansible) — this task only configures serve.
+
+- name: Check tailscale is installed
+  ansible.builtin.command: which tailscale
+  register: tailscale_check
+  changed_when: false
+  failed_when: false
+
+- name: Configure hermesagent on tailscale serve port {{ hermes_tailscale_https_port }}
+  ansible.builtin.command: >
+    tailscale serve --bg --https {{ hermes_tailscale_https_port }}
+    http://127.0.0.1:{{ hermes_port }}
+  changed_when: true
+  when: tailscale_check.rc == 0
+
+- name: Show tailscale serve status
+  ansible.builtin.command: tailscale serve status
+  register: serve_status
+  changed_when: false
+  when: tailscale_check.rc == 0
+
+- name: Print tailscale serve status
+  ansible.builtin.debug:
+    msg: "{{ serve_status.stdout_lines }}"
+  when: tailscale_check.rc == 0

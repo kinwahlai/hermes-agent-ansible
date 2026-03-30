@@ -1,0 +1,53 @@
+---
+# Verification playbook — checks that the install produced expected system state.
+# Run after playbook.yml via tests/entrypoint.sh.
+
+- name: Verify hermesagent installation
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Verify hermesagent user exists
+      ansible.builtin.command: id hermesagent
+      changed_when: false
+
+    - name: Verify hermesagent home directory exists
+      ansible.builtin.stat:
+        path: /home/hermesagent
+      register: home_stat
+
+    - name: Assert home directory exists
+      ansible.builtin.assert:
+        that: home_stat.stat.exists
+        fail_msg: "/home/hermesagent is missing"
+
+    - name: Verify hermesagent sudoers file exists
+      ansible.builtin.stat:
+        path: /etc/sudoers.d/hermesagent
+      register: sudoers_stat
+
+    - name: Assert sudoers file is present
+      ansible.builtin.assert:
+        that: sudoers_stat.stat.exists
+        fail_msg: "/etc/sudoers.d/hermesagent is missing"
+
+    - name: Verify hermes binary is installed
+      ansible.builtin.stat:
+        path: /home/hermesagent/.local/bin/hermes
+      register: hermes_bin_stat
+
+    - name: Assert hermes binary exists
+      ansible.builtin.assert:
+        that: hermes_bin_stat.stat.exists
+        fail_msg: "hermes binary not found at /home/hermesagent/.local/bin/hermes"
+
+    - name: Verify hermes install directory exists
+      ansible.builtin.stat:
+        path: /home/hermesagent/.hermes/hermes-agent
+      register: hermes_dir_stat
+
+    - name: Assert hermes install directory exists
+      ansible.builtin.assert:
+        that: hermes_dir_stat.stat.exists
+        fail_msg: "hermes install directory not found at /home/hermesagent/.hermes/hermes-agent"

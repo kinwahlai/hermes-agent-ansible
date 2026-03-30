@@ -1,0 +1,18 @@
+---
+# Minimal prereqs — Node.js, git, curl, ca-certificates, build-essential
+# are already present from openclaw-ansible. Only assert what might be missing.
+#
+# NOTE: hermes-agent uses uv (Python package manager) which it installs itself
+# via its install.sh. Python 3.11 is also managed by uv — no need to install manually.
+# python3-venv is required on Ubuntu so uv can bootstrap its managed Python builds.
+
+- name: Ensure minimal dependencies are present
+  ansible.builtin.apt:
+    name:
+      - git
+      - curl
+      - ca-certificates
+      - python3-venv
+      - acl
+    state: present
+    update_cache: false

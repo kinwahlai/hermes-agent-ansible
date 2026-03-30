@@ -1,0 +1,42 @@
+[Unit]
+Description=Hermes AI Agent
+After=network.target
+
+[Service]
+Type=simple
+User={{ hermes_user }}
+Group={{ hermes_user }}
+WorkingDirectory={{ hermes_home }}
+
+# Environment
+Environment="HOME={{ hermes_home }}"
+Environment="PATH={{ hermes_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PORT={{ hermes_port }}"
+Environment="HERMES_INSTALL_DIR={{ hermes_install_dir }}"
+Environment="XDG_CONFIG_HOME={{ hermes_home }}/.config"
+Environment="XDG_CACHE_HOME={{ hermes_home }}/.cache"
+{% if hermes_api_key != "" %}
+Environment="HERMES_API_KEY={{ hermes_api_key }}"
+{% endif %}
+
+# Run the hermes gateway (foreground mode for systemd)
+ExecStart={{ hermes_bin }} gateway
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+
+# Security hardening (matches openclaw/paperclip pattern)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths={{ hermes_home }}/.hermes {{ hermes_home }}/.local {{ hermes_home }}/.config {{ hermes_home }}/.cache
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hermesagent
+
+[Install]
+WantedBy=multi-user.target

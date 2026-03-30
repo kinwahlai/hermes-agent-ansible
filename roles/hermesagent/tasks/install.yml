@@ -1,0 +1,71 @@
+---
+# Install hermes-agent via the official install.sh script.
+#
+# The installer (https://github.com/NousResearch/hermes-agent) does the following:
+#   - Installs uv (Python package manager) to ~/.local/bin/uv
+#   - Creates a venv at $HERMES_INSTALL_DIR/venv/ with Python 3.11
+#   - Installs hermes-agent into the venv
+#   - Creates symlink: ~/.local/bin/hermes → $HERMES_INSTALL_DIR/venv/bin/hermes
+#   - Node.js 22.x is already in PATH (openclaw-ansible) — installer uses it for Playwright
+#
+# Idempotency: guarded by stat check on the hermes symlink.
+
+- name: Check if hermes is already installed
+  ansible.builtin.stat:
+    path: "{{ hermes_bin }}"
+  register: hermes_binary
+
+- name: Ensure ~/.local/bin directory exists for hermesagent
+  ansible.builtin.file:
+    path: "{{ hermes_home }}/.local/bin"
+    state: directory
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: '0755'
+  when: not hermes_binary.stat.exists
+
+- name: Download hermes-agent install script
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh
+    dest: /tmp/hermes-install.sh
+    mode: '0755'
+  when: not hermes_binary.stat.exists
+
+- name: Run hermes-agent installer as hermesagent user
+  ansible.builtin.command:
+    cmd: bash /tmp/hermes-install.sh
+    creates: "{{ hermes_bin }}"
+  become: true
+  become_user: "{{ hermes_user }}"
+  environment:
+    HOME: "{{ hermes_home }}"
+    HERMES_INSTALL_DIR: "{{ hermes_install_dir }}"
+    # Expose existing Node.js 22.x (from openclaw-ansible) so installer doesn't re-download it
+    PATH: "{{ hermes_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+    DEBIAN_FRONTEND: noninteractive
+    NEEDRESTART_MODE: "a"
+  when: not hermes_binary.stat.exists
+
+- name: Verify hermes binary is present after install
+  ansible.builtin.stat:
+    path: "{{ hermes_bin }}"
+  register: hermes_binary_post
+
+- name: Assert hermes binary exists
+  ansible.builtin.assert:
+    that: hermes_binary_post.stat.exists
+    fail_msg: "hermes binary not found at {{ hermes_bin }} — install may have failed"
+
+- name: Get hermes version
+  ansible.builtin.command: "{{ hermes_bin }} --version"
+  register: hermes_version
+  changed_when: false
+  become: true
+  become_user: "{{ hermes_user }}"
+  environment:
+    HOME: "{{ hermes_home }}"
+    PATH: "{{ hermes_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+
+- name: Show installed version
+  ansible.builtin.debug:
+    msg: "hermes-agent {{ hermes_version.stdout | trim }} installed at {{ hermes_bin }}"

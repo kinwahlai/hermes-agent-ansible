@@ -1,0 +1,25 @@
+---
+ci_test: false
+
+# hermesagent system user
+hermes_user: hermesagent
+hermes_home: /home/hermesagent
+
+# Binary and install paths (from hermes-agent install.sh)
+# Symlink: ~/.local/bin/hermes → ~/.hermes/hermes-agent/venv/bin/hermes
+hermes_bin: "{{ hermes_home }}/.local/bin/hermes"
+hermes_install_dir: "{{ hermes_home }}/.hermes/hermes-agent"
+
+# Port — hermes gateway default; must not clash with 3000/3100/11434
+# Confirm by running: hermes config | grep port  (or check ~/.hermes/config.yaml)
+hermes_port: 8000
+
+# SSH keys for hermesagent user (optional)
+hermes_ssh_keys: []
+
+# Tailscale — 8444 is the next free port after paperclip's 8443
+hermes_tailscale_enable: true
+hermes_tailscale_https_port: 8444
+
+# API keys (set via -e or host_vars — do NOT commit values here)
+hermes_api_key: ""
